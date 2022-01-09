@@ -1,5 +1,6 @@
 <template>
     <div class="home">
+        <router-link to="/game">game</router-link>
     </div>
 </template>
 

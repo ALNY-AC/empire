@@ -7,10 +7,10 @@
             </div>
             <div v-else>暂无动作</div>
         </div>
-        <div class="land-row" v-for="(row,i) in map" :key="i">
+        <div class="land-row" v-for="(row,i) in $store.state.map" :key="i">
             <div class="land-item" @click="trigger(i,j)" @mousemove="down?trigger(i,j):null" :style="style" v-for="(col,j) in row" :key="i+j">
                 <div v-if="col.content">
-                    <component :is="col.content.component"></component>
+                    <component :is="col.content.component" :x="j" :y="i"></component>
                 </div>
             </div>
         </div>
@@ -30,7 +30,6 @@ export default {
             size: [25, 25],
             landSize: 30,
             down: false,
-            map: [],
         }
     },
     computed: {
@@ -41,6 +40,9 @@ export default {
                 maxWeight: `${this.landSize}px`,
                 maxHeight: `${this.landSize}px`,
             }
+        },
+        map() {
+            return this.$store.state.map;
         }
     },
     mounted() {
@@ -55,28 +57,27 @@ export default {
                         .fill('')
                         .map((el, j) => ({ index: [i, j], content: null }))
                 );
+            this.$store.commit('setMap', map);
             this.randomMap(map);
-
-            this.map = map;
         },
         /**
          * 随机生成地形和场景
          */
-        randomMap(map) {
+        randomMap() {
 
-            this.toMap([5, 5], this.randow([5, 5], () => ({ name: '森林', component: 'Tree' })), map);
-            this.toMap([5, 5], this.randow([5, 5], () => ({ name: '森林', component: 'Tree' })), map);
-            this.toMap([5, 5], this.randow([5, 5], () => ({ name: '森林', component: 'Tree' })), map);
-            this.toMap([3, 3], this.randow([3, 3], () => ({ name: '石头', component: 'Rock' })), map);
-            this.toMap([3, 3], this.randow([3, 3], () => ({ name: '石头', component: 'Rock' })), map);
-            this.toMap([3, 3], this.randow([3, 3], () => ({ name: '石头', component: 'Rock' })), map);
+            this.toMap([5, 5], this.getArea([5, 5], () => ({ name: '森林', component: 'Tree' })));
+            this.toMap([5, 5], this.getArea([5, 5], () => ({ name: '森林', component: 'Tree' })));
+            this.toMap([5, 5], this.getArea([5, 5], () => ({ name: '森林', component: 'Tree' })));
+            this.toMap([3, 3], this.getArea([3, 3], () => ({ name: '石头', component: 'Rock' })));
+            this.toMap([3, 3], this.getArea([3, 3], () => ({ name: '石头', component: 'Rock' })));
+            this.toMap([3, 3], this.getArea([3, 3], () => ({ name: '石头', component: 'Rock' })));
 
 
             // map.forEach(el => {
             //     console.warn(el);
             // })
         },
-        randow(size = [5, 5], comp) {
+        getArea(size = [5, 5], comp) {
             /**
                      * 地形生成机制：
                      * 1、生成长、宽
@@ -84,30 +85,38 @@ export default {
                      * 3、从上到下生成
                      */
             let center = [parseInt(size[0] / 2), parseInt(size[1] / 2)];
-            let map = new Array(size[0]).fill('').map(el => new Array(size[1]).fill(''));
+            let area = new Array(size[0]).fill('').map(el => new Array(size[1]).fill(''));
             // 以中心点开始,在x轴开始向右
             for (let i = 0; i < size[1]; i++) {
                 let dev = Math.abs(center[1] - i);
                 for (let j = dev; j <= size[1] - dev; j++) {
-                    map[i][j] = comp();
+                    area[i][j] = comp();
                 }
             }
-            return map;
+            return area;
         },
-        toMap(size, area, map) {
-            let spot = [parseInt(Math.random() * (this.size[0] - size[0])), parseInt(Math.random() * (this.size[0] - size[0]))];
+        toMap(size, area) {
+            // x,y
+            let spot = [parseInt(Math.random() * (this.size[0] - size[0])), parseInt(Math.random() * (this.size[1] - size[1]))];
             area.forEach((row, i) => {
                 row.forEach((col, j) => {
-                    map[spot[0] + i][spot[1] + j].content = col;
+                    this.$store.commit('setLand', {
+                        x: spot[0] + i,
+                        y: spot[1] + j,
+                        content: col,
+                    })
                 });
             });
         },
         trigger(i, j) {
-            console.warn(i, j);
             if (this.$store.state.model == 'build') {
                 // 建造模式
                 if (!this.map[i][j].content) {
-                    this.map[i][j].content = this.$store.state.activeBuild
+                    this.$store.commit('setLand', {
+                        x: j,
+                        y: i,
+                        content: this.$store.state.activeBuild
+                    });
                 }
             }
         },
@@ -129,7 +138,7 @@ export default {
 .land-row {
     display: flex;
     .land-item {
-        background-color: rgb(194, 194, 194);
+        background-color: rgb(194, 183, 144);
         font-size: 11px;
         // border: solid 1px #ddd;
         outline: solid 1px #ddd;
